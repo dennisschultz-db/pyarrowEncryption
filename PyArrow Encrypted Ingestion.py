@@ -60,9 +60,7 @@ TARFILE_NAME = "/dbfs" + MOUNT_POINT + "/transport.tgz"
 # The below details are related to the Service Principal oneenv-adls
 APPLICATION_ID = "ed573937-9c53-4ed6-b016-929e765443eb"
 DIRECTORY_ID = "9f37a392-f0ae-4280-9796-f1864a10effc"
-# You can use the below if you don't want to use key vault
-APP_KEY = "rNH8Q~q8IMYIsjntqqnJcN7yxCqRXfbsOj8_ba3b"
-#APP_KEY = dbutils.secrets.get(scope = "oneenvkeys", key = "adls-app-key")
+APP_KEY = dbutils.secrets.get(scope = "oneenvkeys", key = "adls-app-key")
 
 STORAGE_ACCOUNT = "oneenvadls"
 CONTAINER = "dennis-schultz"
@@ -88,7 +86,6 @@ dbutils.fs.mount(
 # COMMAND ----------
 
 # DBTITLE 1,Confirm tar file has been uploaded to mount point
-
 display(dbutils.fs.ls(MOUNT_POINT))
 
 # COMMAND ----------
