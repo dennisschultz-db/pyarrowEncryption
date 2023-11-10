@@ -33,7 +33,7 @@ def retrieve_tabular_data():
         'FirstName': pa.array(['Jane', 'Bob', 'Sam']),
         'LastName': pa.array(['Jones', 'Baker', 'Sloan']),
         'SSN': pa.array(['123-45-6789', '234-56-7890', '345-67-8901']),
-        'DOB' : pa.array(['14 May 1970', '25 June 1975', '04 July 1976'])
+        'DOB' : pa.array(['5/14/1970', '6/25/1975', '7/4/1976'])
     })
 
 def retrieve_text_data():
