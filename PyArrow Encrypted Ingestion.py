@@ -52,6 +52,21 @@ TARFILE_NAME = "/dbfs" + MOUNT_POINT + "/transport.tgz"
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC # Define secrets
+# MAGIC
+# MAGIC
+# MAGIC 1.  Using the Azure portal, create an Azure Key Vault `pyarrow-test` in `East US` region on `Premium` plan
+# MAGIC     1.  Store secrets `FooterKey` and `ColKey`
+# MAGIC 2.  Using the Databricks CLI or url below, create a Databricks AKV-backed Secret Scope `dennis-schultz-pyarrow`
+# MAGIC     1.   (https://adb-2541733722036151.11.azuredatabricks.net#secrets/createScope)
+# MAGIC
+# MAGIC
+# MAGIC -  [Secret scopes - Azure Databricks](https://learn.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes)
+# MAGIC -  [Secret management - Azure Databricks](https://learn.microsoft.com/en-us/azure/databricks/security/secrets/)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # Mount ADLS storage container
 # MAGIC !!!! The cell below should only need to be run once to mount the external container as a mount point on DBFS !!!!
 
@@ -123,9 +138,11 @@ def read_encrypted_parquet(path, decryption_config, kms_connection_config, crypt
 
 PARQUET_NAME = 'encrypted_table.parquet'
 TEXT_NAME = 'encrypted_text.txt'
-FOOTER_KEY = b"0123456789112345"
+#FOOTER_KEY = b"0123456789112345"
+FOOTER_KEY = dbutils.secrets.get(scope="dennis-schultz-pyarrow", key="FooterKey").encode('utf-8')
 FOOTER_KEY_NAME = "footer_key"
-COL_KEY = b"1234567890123450"
+#COL_KEY = b"1234567890123450"
+COL_KEY = dbutils.secrets.get(scope="dennis-schultz-pyarrow", key="ColKey").encode('utf-8')
 COL_KEY_NAME = "col_key"
 
 
@@ -172,10 +189,15 @@ display(text_value)
 
 # COMMAND ----------
 
+# DBTITLE 1,Data Cleansing and typing example
+# Convert string DOB to date type
+df = spark.createDataFrame(pdf).withColumn('DOB', to_date(col('DOB'), "M/d/y"))
+
+# COMMAND ----------
+
 # DBTITLE 1,Save tabular data as Delta Table
 spark.sql("CREATE SCHEMA IF NOT EXISTS dennis_schultz")
 spark.sql("USE SCHEMA dennis_schultz")
-df = spark.createDataFrame(pdf)
 df.write.mode("overwrite").option("mergeSchema", "true").saveAsTable('transported_table')
 
 # COMMAND ----------
