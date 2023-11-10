@@ -20,7 +20,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install updated versions of pyarrow and pytest
-# MAGIC %pip install pyarrow==13.0.0
+# MAGIC %pip install pyarrow==14.0.0
 # MAGIC %pip install pytest==7.4.2
 
 # COMMAND ----------
@@ -28,6 +28,7 @@
 # DBTITLE 1,Imports
 import tarfile
 from datetime import timedelta
+from pyspark.sql.functions import to_date, col
 
 import pytest
 import pyarrow as pa
