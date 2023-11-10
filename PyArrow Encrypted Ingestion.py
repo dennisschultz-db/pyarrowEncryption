@@ -53,7 +53,7 @@ TARFILE_NAME = "/dbfs" + MOUNT_POINT + "/transport.tgz"
 
 # MAGIC %md
 # MAGIC # Mount ADLS storage container
-# MAGIC The cell below should only need to be run once to mount the external container as a mount point on DBFS
+# MAGIC !!!! The cell below should only need to be run once to mount the external container as a mount point on DBFS !!!!
 
 # COMMAND ----------
 
@@ -186,6 +186,17 @@ df.write.mode("overwrite").option("mergeSchema", "true").saveAsTable('transporte
 # COMMAND ----------
 
 display(text_value)
+
+# COMMAND ----------
+
+# DBTITLE 1,Cleanup
+list = dbutils.fs.ls(MOUNT_POINT + "/extracted/temp")
+for file in list:
+  dbutils.fs.rm(MOUNT_POINT + "/extracted/temp/" +file.name)
+dbutils.fs.rm(MOUNT_POINT + "/extracted/temp/")
+dbutils.fs.rm(MOUNT_POINT + "/extracted/")
+dbutils.fs.rm(MOUNT_POINT + "/transport.tgz")
+dbutils.fs.ls(MOUNT_POINT)
 
 # COMMAND ----------
 
