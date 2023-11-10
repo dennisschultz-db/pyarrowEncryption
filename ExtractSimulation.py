@@ -32,7 +32,8 @@ def retrieve_tabular_data():
         'CustomerID': pa.array([1001, 1002, 1003]),
         'FirstName': pa.array(['Jane', 'Bob', 'Sam']),
         'LastName': pa.array(['Jones', 'Baker', 'Sloan']),
-        'SSN': pa.array(['123-45-6789', '234-56-7890', '345-67-8901'])
+        'SSN': pa.array(['123-45-6789', '234-56-7890', '345-67-8901']),
+        'DOB' : pa.array(['14 May 1970', '25 June 1975', '04 July 1976'])
     })
 
 def retrieve_text_data():
@@ -101,7 +102,7 @@ text_data = retrieve_text_data()
 encryption_config = pe.EncryptionConfiguration(
     footer_key=FOOTER_KEY_NAME,
     column_keys={
-        COL_KEY_NAME: ['FirstName', 'LastName', 'SSN'],
+        COL_KEY_NAME: ['FirstName', 'LastName', 'SSN', 'DOB'],
     },
     encryption_algorithm="AES_GCM_V1",
     cache_lifetime=timedelta(minutes=5.0),
