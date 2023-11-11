@@ -1,7 +1,9 @@
 from datetime import timedelta
 
 import tarfile
+import os
 import os.path
+import glob
 import shutil
 import pytest
 import pyarrow as pa
@@ -22,6 +24,7 @@ def write_encrypted_parquet(path, table, encryption_config, kms_connection_confi
     assert file_encryption_properties is not None
     with pq.ParquetWriter(
             path, table.schema,
+            compression='SNAPPY',
             encryption_properties=file_encryption_properties) as writer:
         writer.write_table(table)
 
@@ -46,43 +49,60 @@ def store_text_as_table(data):
 
 def make_tarfile(output_filename, source_dir):
     with tarfile.open(output_filename, "w:gz") as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
+        tar.add(source_dir, arcname="")
 
-def upload_to_landing_zone(storage_url, container_name, blob_name, content_path):
+    # Delete all but the tar file
+    files = glob.glob(source_dir + '/*')
+    for file in files:
+        if (file != output_filename):
+            os.remove(file)
+
+def upload_to_landing_zone(storage_url, container_name, content_path):
     from azure.identity import DefaultAzureCredential
-    from azure.storage.blob import BlobClient
+    from azure.storage.blob import ContainerClient
 
     # For demonstration only.  Will use IDE or CLI credentials
     credential = DefaultAzureCredential()
 
-    blob_client = BlobClient(
+    container_client = ContainerClient(
         storage_url,
         container_name=container_name,
-        blob_name=blob_name,
-        credential=credential,
+        credential=credential
     )
 
-    with open(content_path, 'rb') as data:
-        blob_client.upload_blob(data, overwrite=True)
-        print(f'Uploaded {data.name} to {blob_client.url}')
+    for filename in os.listdir(content_path):
+        with open(os.path.join(content_path, filename), 'rb') as data:
+            container_client.upload_blob(
+                name=filename,
+                data=data,
+                overwrite=True
+            )
+            print(f'Uploaded {filename} to {container_client.url}')
+
 
 
 
 
 
 # ===================================================
+COMPRESS_FOR_TRANSPORT = False
 
 TEMPDIR = './temp'
 PARQUET_NAME = 'encrypted_table.parquet'
 TEXT_NAME = 'encrypted_text.txt'
-BLOB_NAME = 'transport.tgz'
+TAR_NAME = 'transport.tgz'
+parquet_file_path = TEMPDIR + '/' + PARQUET_NAME
+text_file_path = TEMPDIR + '/' + TEXT_NAME
+tar_file_name = TEMPDIR + '/' + TAR_NAME
+
 FOOTER_KEY = b"0123456789112345"
 FOOTER_KEY_NAME = "footer_key"
 COL_KEY = b"1234567890123450"
 COL_KEY_NAME = "col_key"
 
-path = TEMPDIR + '/' + PARQUET_NAME
-text_path = TEMPDIR + '/' + TEXT_NAME
+storage_url = "https://oneenvadls.blob.core.windows.net"
+container_name = "dennis-schultz"
+
 
 # Clean up any past runs
 shutil.rmtree(TEMPDIR)
@@ -124,7 +144,7 @@ crypto_factory = pe.CryptoFactory(kms_factory)
 
 # Write data to local file at path with encryption properties
 write_encrypted_parquet(
-    path, 
+    parquet_file_path, 
     table=table_data, 
     encryption_config=encryption_config,
     kms_connection_config=kms_connection_config, 
@@ -137,28 +157,24 @@ text_table_data = store_text_as_table(text_data)
 # Write embedded text table with encryption properties
 encryption_config.column_keys={COL_KEY_NAME: ['payload']}
 write_encrypted_parquet(
-    text_path,
+    text_file_path,
     table=text_table_data,
     encryption_config=encryption_config,
     kms_connection_config=kms_connection_config,
     crypto_factory=crypto_factory)
 
 
-# Tar/zip all the encrypted files into one archive for transport
-tarfile_name = TEMPDIR + '/transport.tgz'
-make_tarfile(
-    output_filename=tarfile_name,
-    source_dir=TEMPDIR
-)
+if COMPRESS_FOR_TRANSPORT:
+    # Tar/zip all the encrypted files into one archive for transport
+    make_tarfile(
+        output_filename=tar_file_name,
+        source_dir=TEMPDIR
+    )
 
 # Upload the encrypted file to Azure container landing zone
 # The archive could also be physically transported to the landing zone, if required by client
-storage_url = "https://oneenvadls.blob.core.windows.net"
-container_name = "dennis-schultz"
-
 upload_to_landing_zone(
     storage_url=storage_url,
     container_name=container_name,
-    blob_name=BLOB_NAME,
-    content_path=tarfile_name
+    content_path=TEMPDIR
 )
