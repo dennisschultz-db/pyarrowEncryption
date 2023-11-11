@@ -47,8 +47,12 @@ else:
 
 # DBTITLE 1,Static variable values
 MOUNT_POINT = '/mnt/landing-zone'
+MOUNT_POINT_SHELL = "/dbfs" + MOUNT_POINT
+MOUNT_POINT_DBFS = "dbfs:" + MOUNT_POINT
 
-TARFILE_NAME = "/dbfs" + MOUNT_POINT + "/transport.tgz"
+TARFILE_NAME = "transport.tgz"
+TARFILE_NAME_SHELL = MOUNT_POINT_SHELL + "/" + TARFILE_NAME
+TARFILE_NAME_DBFS =  MOUNT_POINT_DBFS + "/" + TARFILE_NAME
 
 # COMMAND ----------
 
@@ -106,19 +110,21 @@ display(dbutils.fs.ls(MOUNT_POINT))
 
 # COMMAND ----------
 
-# DBTITLE 1,Extract files from tar file
-tar = tarfile.open(TARFILE_NAME, mode='r')
-tar.extractall('/dbfs' + MOUNT_POINT + "/extracted")
-tar.close()
-
+# DBTITLE 1,Extract files from tar file, if files were tared
+files = dbutils.fs.ls(MOUNT_POINT)
+if (files[0].name == TARFILE_NAME):
+    tar = tarfile.open(TARFILE_NAME_SHELL, mode='r')
+    tar.extractall(MOUNT_POINT_SHELL)
+    tar.close()
+    dbutils.fs.rm(TARFILE_NAME_DBFS)
 
 # COMMAND ----------
 
-# DBTITLE 1,Extracted files are still encrypted
-list = dbutils.fs.ls(MOUNT_POINT + "/extracted/temp")
+# DBTITLE 1,Extracted files are encrypted
+list = dbutils.fs.ls(MOUNT_POINT)
 display(list)
 for file in list:
-  display(file.name + ":  " + dbutils.fs.head(MOUNT_POINT + "/extracted/temp/" +file.name, 256) )
+  display(file.name + ":  " + dbutils.fs.head(MOUNT_POINT + "/" +file.name, 256) )
 
 # COMMAND ----------
 
@@ -164,7 +170,7 @@ def kms_factory(kms_connection_configuration):
 crypto_factory = pe.CryptoFactory(kms_factory)
 
 result_table = read_encrypted_parquet(
-    "/dbfs" + MOUNT_POINT + "/extracted/temp/" + PARQUET_NAME, 
+    MOUNT_POINT_SHELL + "/" + PARQUET_NAME, 
     decryption_config=decryption_config, 
     kms_connection_config=kms_connection_config, 
     crypto_factory=crypto_factory)
@@ -176,7 +182,7 @@ print('-------------------------------------------')
 print(pdf)
 
 results_txt = read_encrypted_parquet(
-    "/dbfs" + MOUNT_POINT + "/extracted/temp/" + TEXT_NAME,
+    MOUNT_POINT_SHELL + "/" + TEXT_NAME,
     decryption_config=decryption_config,
     kms_connection_config=kms_connection_config,
     crypto_factory=crypto_factory
@@ -213,13 +219,8 @@ display(text_value)
 # COMMAND ----------
 
 # DBTITLE 1,Cleanup
-list = dbutils.fs.ls(MOUNT_POINT + "/extracted/temp")
-for file in list:
-  dbutils.fs.rm(MOUNT_POINT + "/extracted/temp/" +file.name)
-dbutils.fs.rm(MOUNT_POINT + "/extracted/temp/")
-dbutils.fs.rm(MOUNT_POINT + "/extracted/")
-dbutils.fs.rm(MOUNT_POINT + "/transport.tgz")
-dbutils.fs.ls(MOUNT_POINT)
+dbutils.fs.rm(MOUNT_POINT, recurse=True)
+print(dbutils.fs.ls(MOUNT_POINT))
 
 # COMMAND ----------
 
