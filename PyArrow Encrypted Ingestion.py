@@ -105,7 +105,18 @@ dbutils.fs.mount(
 
 # COMMAND ----------
 
-# DBTITLE 1,Confirm tar file has been uploaded to mount point
+# DBTITLE 1,Cleanup any past runs
+dbutils.fs.rm(MOUNT_POINT, recurse=True)
+print(dbutils.fs.ls(MOUNT_POINT))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Run the client code
+
+# COMMAND ----------
+
+# DBTITLE 1,Confirm tar file or individual files have been uploaded to mount point
 display(dbutils.fs.ls(MOUNT_POINT))
 
 # COMMAND ----------
@@ -215,12 +226,6 @@ df.write.mode("overwrite").option("mergeSchema", "true").saveAsTable('transporte
 # COMMAND ----------
 
 display(text_value)
-
-# COMMAND ----------
-
-# DBTITLE 1,Cleanup
-dbutils.fs.rm(MOUNT_POINT, recurse=True)
-print(dbutils.fs.ls(MOUNT_POINT))
 
 # COMMAND ----------
 
